@@ -10,37 +10,49 @@ conn = psycopg2.connect(
     port=5432
 )
 
-print("Connected successfully!")
-
 cur = conn.cursor()
 
-# Open JSON file
-with open("agrihub data.json", "r") as f:
-    lines = f.readlines()
+def clean(value):
+    if value == "N/A" or value == "":
+        return None
+    return value
 
-# Insert first 10 rows
-for line in lines[:10]:
-    data = json.loads(line)
+count = 0
 
-    cur.execute("""
-        INSERT INTO weather_data
-        (timestamp, ec_value, ph_value, water_temp, lux_value,
-         humidity, surround_temp, water_level, dosing_pump)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        data["timestamp"],
-        data["ec_value"],
-        data["ph_value"],
-        data["water_temp"],
-        data["lux_value"],
-        data["humidity"],
-        data["surround_temp"],
-        data["water_level"],
-        data["dosing_pump"]
-    ))
+with open("agrihub data.json", "r", encoding="utf-8") as f:
+    for line in f:
+        row = json.loads(line)
+
+        cur.execute("""
+            INSERT INTO agrihub_data (
+                timestamp,
+                ec_value,
+                ph_value,
+                water_temp,
+                lux_value,
+                humidity,
+                surround_temp,
+                water_level,
+                dosing_pump
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """,
+        (
+            row["timestamp"],
+            clean(row["ec_value"]),
+            clean(row["ph_value"]),
+            clean(row["water_temp"]),
+            clean(row["lux_value"]),
+            clean(row["humidity"]),
+            clean(row["surround_temp"]),
+            row["water_level"],
+            row["dosing_pump"]
+        ))
+
+        count += 1
 
 conn.commit()
 cur.close()
 conn.close()
 
-print("✅ 10 rows inserted successfully")
+print(f"{count} rows inserted successfully")
